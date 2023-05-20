@@ -1,0 +1,8 @@
+# Placeholder flags for the QEMU LOONGARCH virt board
+ARCHFLAGS     += -D__LOONGARCH_64__ -mabi=lp64s -march=loongarch64 -mcmodel=normal
+# Don't use floating point registers for interrupt-safe routines.
+ISR_ARCHFLAGS += -D__LOONGARCH_64__ -mabi=lp64s -march=loongarch64 -mcmodel=normal -mfpu=none
+
+CINCLUDES   += -I$(CONFIG_UK_BASE)/arch/loongarch/loongarch64/include
+ASINCLUDES  += -I$(CONFIG_UK_BASE)/arch/loongarch/loongarch64/include
+CXXINCLUDES += -I$(CONFIG_UK_BASE)/arch/loongarch/loongarch64/include

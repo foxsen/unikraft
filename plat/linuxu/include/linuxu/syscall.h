@@ -47,6 +47,8 @@
 #include <linuxu/syscall-arm_32.h>
 #elif defined __ARM_64__
 #include <linuxu/syscall-arm_64.h>
+#elif defined __LOONGARCH_64__
+#include <linuxu/syscall-loongarch_64.h>
 #else
 #error "Unsupported architecture"
 #endif

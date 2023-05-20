@@ -1,0 +1,3 @@
+ifeq ($(CONFIG_UK_ARCH),loongarch64)
+	include $(CONFIG_UK_BASE)/arch/loongarch/loongarch64/Compiler.uk
+endif

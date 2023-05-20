@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Wei Chen <wei.chen@arm.com>
  *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2018, Arm Ltd. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,25 +30,77 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
+#ifndef __PLAT_COMMON_LOONGARCH64_CPU_H__
+#define __PLAT_COMMON_LOONGARCH64_CPU_H__
 
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
-#include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
+#include <inttypes.h>
+#include <uk/essentials.h>
+#include <uk/alloc.h>
+#include <uk/assert.h>
+#include <arm/smccc.h>
+#include <uk/plat/common/lcpu.h>
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+static inline void _init_cpufeatures(void)
+{
+}
 
-#endif /* __PLAT_CMN_CPU_H__ */
+/* Define compatibility IO macros */
+#define outb(addr, v)   UK_BUG()
+#define outw(addr, v)   UK_BUG()
+#define inb(addr)       UK_BUG()
+
+/*
+ * PSCI conduit method to call functions, based on the SMC Calling Convention.
+ */
+extern smccc_conduit_fn_t smccc_psci_call;
+
+/* CPU native APIs */
+void halt(void);
+void reset(void);
+void system_off(void);
+#ifdef CONFIG_HAVE_SMP
+int cpu_on(__lcpuid id, __paddr_t entry, void *arg);
+#endif /* CONFIG_HAVE_SMP */
+
+#ifdef CONFIG_FPSIMD
+
+struct fpsimd_state {
+	__u64		regs[32 * 2];
+	__u32		fpsr;
+	__u32		fpcr;
+};
+
+extern void fpsimd_save_state(uintptr_t ptr);
+extern void fpsimd_restore_state(uintptr_t ptr);
+
+static inline void save_extregs(void *ectx)
+{
+	fpsimd_save_state((uintptr_t) ectx);
+
+	/* make sure sysreg writing takes effects */
+	isb();
+}
+
+static inline void restore_extregs(void *ectx)
+{
+	fpsimd_restore_state((uintptr_t) ectx);
+
+	/* make sure sysreg writing takes effects */
+	isb();
+}
+
+#else /* !CONFIG_FPSIMD */
+
+struct fpsimd_state { };
+
+static inline void save_extregs(void *ectx __unused)
+{
+}
+
+static inline void restore_extregs(void *ectx __unused)
+{
+}
+
+#endif /* CONFIG_FPSIMD */
+
+#endif /* __PLAT_COMMON_LOONGARCH64_CPU_H__ */

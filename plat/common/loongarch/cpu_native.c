@@ -30,25 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
-
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
 #include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+void halt(void)
+{
+	__asm__ __volatile__ ("hlt" : : : "memory");
+}
 
-#endif /* __PLAT_CMN_CPU_H__ */
+unsigned long read_cr2(void)
+{
+	unsigned long cr2;
+
+	__asm__ __volatile__("mov %%cr2, %0" : "=r"(cr2));
+
+	return cr2;
+}
+
+void system_off(void)
+{
+#ifdef CONFIG_KVM_VMM_FIRECRACKER
+	/* Trigger the reset line via the PS/2 controller. On firecracker
+	 * this will shutdown the VM.
+	 */
+	outb(0x64, 0xFE);
+#endif /* CONFIG_KVM_VMM_FIRECRACKER */
+
+	/*
+	 * Perform an ACPI shutdown by writing (SLP_TYPa | SLP_EN) to PM1a_CNT.
+	 * Generally speaking, we'd have to jump through a lot of hoops to
+	 * collect those values, however, for QEMU, those are static. Should be
+	 * harmless if we're not running on QEMU, especially considering we're
+	 * already shutting down, so who cares if we crash.
+	 */
+	outw(0x604, 0x2000);
+
+	/*
+	 * If that didn't work for whatever reason, try poking the QEMU
+	 * "isa-debug-exit" device to "shutdown". Should be harmless if it is
+	 * not present. This is used to enable automated tests on virtio.  Note
+	 * that the actual QEMU exit() status will be 83 ('S', 41 << 1 | 1).
+	 */
+	outw(0x501, 41);
+}

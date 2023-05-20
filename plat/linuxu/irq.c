@@ -43,6 +43,8 @@
 #include <x86/cpu.h>
 #elif (defined __ARM_32__) || (defined __ARM_64__)
 #include <arm/cpu.h>
+#elif (defined __LOONGARCH_32__) || (defined __LOONGARCH_64__)
+#include <loongarch/cpu.h>
 #else
 #error "Unsupported architecture"
 #endif
@@ -145,6 +147,8 @@ asm("__restorer:mov $15,%rax\nsyscall");
 asm("__restorer:mov r7, #0x77\nsvc 0x0");
 #elif defined __ARM_64__
 asm("__restorer:mov x8, #0x8b\nsvc #0");
+#elif defined __LOONGARCH_64__
+asm("__restorer:addi.d $r11, $r0, 139\nsyscall 0");
 #else
 #error "Unsupported architecture"
 #endif

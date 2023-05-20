@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Cristian Vijelie <cristianvijelie@gmail.com>
  *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2021, University POLITEHNICA of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,27 +28,35 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
+#ifndef __PLAT_CMN_X86_SDT_H__
+#define __PLAT_CMN_X86_SDT_H__
 
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
-#include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
+#include <uk/arch/types.h>
+#include <uk/essentials.h>
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+struct ACPISDTHeader {
+	char Signature[4];
+	__u32 Length;
+	__u8 Revision;
+	__u8 Checksum;
+	char OEMID[6];
+	char OEMTableID[8];
+	__u32 OEMRevision;
+	__u32 CreatorID;
+	__u32 CreatorRevision;
+} __packed;
 
-#endif /* __PLAT_CMN_CPU_H__ */
+struct RSDT {
+	struct ACPISDTHeader h;
+	__u32 Entry[];
+} __packed;
+
+struct XSDT {
+	struct ACPISDTHeader h;
+	__u64 Entry[];
+} __packed;
+
+#endif /* __PLAT_CMN_X86_SDT_H__ */

@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Cristian Vijelie <cristianvijelie@gmail.com>
  *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2021, University POLITEHNICA of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,27 +28,45 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
+#ifndef __PLAT_CMN_X86_ACPI_H__
+#define __PLAT_CMN_X86_ACPI_H__
 
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
-#include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
+#include <x86/acpi/sdt.h>
+#include <x86/acpi/madt.h>
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+struct RSDPDescriptor {
+	char Signature[8];
+	__u8 Checksum;
+	char OEMID[6];
+	__u8 Revision;
+	__u32 RsdtAddress;
+} __packed;
 
-#endif /* __PLAT_CMN_CPU_H__ */
+struct RSDPDescriptor20 {
+	struct RSDPDescriptor v1;
+
+	__u32 Length;
+	__u64 XsdtAddress;
+	__u8 ExtendedChecksum;
+	__u8 Reserved[3];
+} __packed;
+
+/**
+ * Detect ACPI version and discover ACPI tables.
+ *
+ * @return 0 on success, -errno otherwise.
+ */
+int acpi_init(void);
+
+/**
+ * Return the detected ACPI version.
+ *
+ * @return 0 if ACPI is not initialized or initialization failed, ACPI version
+ *    otherwise.
+ */
+int acpi_get_version(void);
+
+#endif /* __PLAT_CMN_X86_ACPI_H__ */

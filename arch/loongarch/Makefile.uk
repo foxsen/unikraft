@@ -1,0 +1,13 @@
+# Include corresponding Makefiles for specified architechtures
+ifeq ($(CONFIG_UK_ARCH),loongarch64)
+	include $(CONFIG_UK_BASE)/arch/loongarch/loongarch64/Makefile.uk
+endif
+
+$(eval $(call addlib,libcontext))
+
+LIBCONTEXT_CINCLUDES-y += -I$(UK_PLAT_COMMON_BASE)/include
+LIBCONTEXT_SRCS-y += $(LIBCONTEXT_BASE)/ctx.c|isr
+LIBCONTEXT_SRCS-y += $(LIBCONTEXT_BASE)/ectx.c|isr
+LIBCONTEXT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBCONTEXT_BASE)/loongarch64/ctx.S|loongarch64
+LIBCONTEXT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBCONTEXT_BASE)/loongarch64/tls.c|loongarch64
+

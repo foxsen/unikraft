@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
- *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) YYYY, Copyright Holder. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,26 +27,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
-
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
-#include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
+#ifndef __UK_ESSENTIALS_H__
+#error Do not include this header directly
 #endif
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
-
-#endif /* __PLAT_CMN_CPU_H__ */
+/* Architecture-specific compiler definitions */

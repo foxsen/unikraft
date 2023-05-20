@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Cristian Vijelie <cristianvijelie@gmail.com>
  *
- * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2021, University POLITEHNICA of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,27 +28,36 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
+#ifndef __PLAT_COMMON_X86_DELAY_H__
+#define __PLAT_COMMON_X86_DELAY_H__
 
-#include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
 #include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
-#include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+/*
+ * Delay the execution for a given amount of microseconds/ milliseconds.
+ * The delay is not **exactly** as requested, but close enough to be viable
+ * in some cases. For precise delays a timer would be better suited.
+ */
 
-#endif /* __PLAT_CMN_CPU_H__ */
+static inline void udelay(__u16 usec)
+{
+	const __u16 DELAY_PORT = 0x80;
+
+	while (usec--)
+		/*
+		 * Writing to the 0x80 port has no effect, and takes
+		 * approximately 1us
+		 */
+		outb(DELAY_PORT, 1);
+}
+
+static inline void mdelay(__u16 msec)
+{
+	while (msec--)
+		udelay(1000);
+}
+
+#endif /* __PLAT_COMMON_X86_DELAY_H__ */

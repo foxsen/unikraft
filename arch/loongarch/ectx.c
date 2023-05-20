@@ -1,8 +1,13 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Costin Lupu <costin.lupu@cs.pub.ro>
+ * Authors: Florian Schmidt <florian.schmidt@neclab.eu>
+ *          Simon Kuenzer <simon.kuenzer@neclab.eu>
+ *          Robert Kuban <robert.kuban@opensynergy.com>
  *
  * Copyright (c) 2018, NEC Europe Ltd., NEC Corporation. All rights reserved.
+ * Copyright (c) 2021, NEC Laboratories Europe GmbH, NEC Corporation.
+ *                     All rights reserved.
+ * Copyright (c) 2022, OpenSynergy GmbH All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,26 +34,56 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef __PLAT_CMN_CPU_H__
-#define __PLAT_CMN_CPU_H__
-
+#include <uk/arch/ctx.h>
 #include <uk/arch/lcpu.h>
-#if defined(__X86_64__)
-#include <x86/cpu.h>
-#elif defined(__ARM_32__) || defined(__ARM_64__)
-#include <arm/cpu.h>
-#elif defined(__LOONGARCH_32__) || defined(__LOONGARCH_64__)
+#include <uk/arch/types.h>
+#include <uk/ctors.h>
+#include <uk/essentials.h>
+#include <uk/assert.h>
+#include <uk/print.h>
+#include <string.h> /* memset */
 #include <loongarch/cpu.h>
-#else
-#error "Add cpu.h for current architecture."
-#endif
 
-#define __CPU_HALT()		\
-({				\
-	local_irq_disable();	\
-		for (;;)	\
-			halt();	\
-})
+__sz ukarch_ectx_size(void)
+{
+	return sizeof(struct fpsimd_state);
+}
 
-#endif /* __PLAT_CMN_CPU_H__ */
+/* TODO: find good alignment for ectx
+ * registers are stored/loaded by the STP/LTP instruction
+ * 16 byte seem reasonable
+ */
+#define ECTX_ALIGN 16
+
+__sz ukarch_ectx_align(void)
+{
+	return ECTX_ALIGN;
+}
+
+void ukarch_ectx_init(struct ukarch_ectx *state)
+{
+	UK_ASSERT(state);
+	UK_ASSERT(IS_ALIGNED((__uptr) state, ECTX_ALIGN));
+
+	/* Initialize extregs area:
+	 * Zero out and then save a valid layout to it.
+	 */
+	memset(state, 0, sizeof(struct fpsimd_state));
+	ukarch_ectx_store(state);
+}
+
+void ukarch_ectx_store(struct ukarch_ectx *state)
+{
+	UK_ASSERT(state);
+	UK_ASSERT(IS_ALIGNED((__uptr) state, ECTX_ALIGN));
+
+	save_extregs(state);
+}
+
+void ukarch_ectx_load(struct ukarch_ectx *state)
+{
+	UK_ASSERT(state);
+	UK_ASSERT(IS_ALIGNED((__uptr) state, ECTX_ALIGN));
+
+	restore_extregs(state);
+}

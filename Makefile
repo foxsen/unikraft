@@ -509,7 +509,8 @@ export UK_FAMILY ?= $(shell echo "$(CONFIG_UK_ARCH)" | \
 		       -e 's/sparc64/sparc/' \
 		       -e 's/arm.*/arm/' \
 		       -e 's/powerpc.*/powerpc/' \
-		       -e 's/sh.*/sh/' )
+		       -e 's/sh.*/sh/' \
+		       -e 's/loongarch.*/loongarch/' )
 
 
 # Quick-check if architecture exists
