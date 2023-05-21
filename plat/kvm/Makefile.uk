@@ -38,6 +38,9 @@ else
 ifeq ($(CONFIG_ARCH_ARM_64),y)
 UK_PLAT_KVM_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/arm/link64.lds.S
 endif
+ifeq ($(CONFIG_ARCH_LOONGARCH_64),y)
+UK_PLAT_KVM_DEF_LDS            := $(CONFIG_UK_BASE)/plat/kvm/loongarch/link64.lds.S
+endif
 endif
 
 
@@ -123,6 +126,16 @@ LIBKVMPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBKVMPLAT_BASE)/arm/setup.c
 LIBKVMPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBKVMPLAT_BASE)/arm/lcpu.c
 LIBKVMPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBKVMPLAT_BASE)/arm/intctrl.c
 LIBKVMPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBKVMPLAT_BASE)/arm/memory.c
+
+##
+## Architecture library definitions for loongarch64
+##
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/entry64.S|isr
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/exceptions.S|isr
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/pagetable64.S|isr
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/setup.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/setup-paging.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/dtb.c
 
 LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/shutdown.c
 LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/irq.c
