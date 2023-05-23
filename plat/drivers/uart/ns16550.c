@@ -31,7 +31,11 @@
 #include <uk/config.h>
 #include <uk/plat/console.h>
 #include <uk/assert.h>
+#if defined(__ARM_32__) || defined(__ARM_64__)
 #include <arm/cpu.h>
+#elif defined(__LOONGARCH_64__)
+#include <loongarch/cpu.h>
+#endif
 
 #define NS16550_THR_OFFSET	0x00U
 #define NS16550_RBR_OFFSET	0x00U
@@ -43,7 +47,11 @@
 #define NS16550_LSR_OFFSET	0x05U
 #define NS16550_MSR_OFFSET	0x06U
 
+#if defined(__LOONGARCH_64__)
+#define NS16550_REG_SHIFT	0x00U
+#else
 #define NS16550_REG_SHIFT	0x02U
+#endif
 
 #define NS16550_LCR_DLAB	0x80U
 #define NS16550_IIR_NO_INT	0x01U
@@ -68,10 +76,10 @@ static uint64_t ns16550_uart_base;
 #endif
 
 /* Macros to access ns16550 registers with base address and reg shift */
-#define NS16550_REG(r)			((uint16_t *)(ns16550_uart_base + \
+#define NS16550_REG(r)			((uint8_t *)(ns16550_uart_base + \
 					(r << NS16550_REG_SHIFT)))
-#define NS16550_REG_READ(r)		ioreg_read16(NS16550_REG(r))
-#define NS16550_REG_WRITE(r, v)	ioreg_write16(NS16550_REG(r), v)
+#define NS16550_REG_READ(r)		ioreg_read8(NS16550_REG(r))
+#define NS16550_REG_WRITE(r, v)	ioreg_write8(NS16550_REG(r), v)
 
 static void init_ns16550(uint64_t base)
 {

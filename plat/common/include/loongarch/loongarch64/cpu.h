@@ -37,7 +37,6 @@
 #include <uk/essentials.h>
 #include <uk/alloc.h>
 #include <uk/assert.h>
-#include <arm/smccc.h>
 #include <uk/plat/common/lcpu.h>
 
 static inline void _init_cpufeatures(void)
@@ -48,11 +47,6 @@ static inline void _init_cpufeatures(void)
 #define outb(addr, v)   UK_BUG()
 #define outw(addr, v)   UK_BUG()
 #define inb(addr)       UK_BUG()
-
-/*
- * PSCI conduit method to call functions, based on the SMC Calling Convention.
- */
-extern smccc_conduit_fn_t smccc_psci_call;
 
 /* CPU native APIs */
 void halt(void);
@@ -65,9 +59,8 @@ int cpu_on(__lcpuid id, __paddr_t entry, void *arg);
 #ifdef CONFIG_FPSIMD
 
 struct fpsimd_state {
-	__u64		regs[32 * 2];
-	__u32		fpsr;
-	__u32		fpcr;
+	__u64		regs[32];
+	__u32		fcsr;
 };
 
 extern void fpsimd_save_state(uintptr_t ptr);

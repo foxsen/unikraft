@@ -94,7 +94,7 @@ config HZ
 config FPSIMD
 	bool "floating point & simd support in application"
 	default n
-	depends on ARCH_ARM_64
+	depends on (ARCH_ARM_64 || ARCH_LOONGARCH_64)
 	help
 		Enable support FPU usage in application
 

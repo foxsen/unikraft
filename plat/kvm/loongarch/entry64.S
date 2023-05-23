@@ -25,17 +25,16 @@ ENTRY(_libkvmplat_entry)
 	bl _libkvmplat_start
 spin:
         b           spin
-
 END(_libkvmplat_entry)
 
 ENTRY(__start_mmu)
-	/* Enable paging */
-	li.d        $t0, 0x8000000000000000   
-        csrwr       $t0, LOONGARCH_CSR_DMWIN0
-        li.d        $t0, 0x9000000000000011   # CA, PLV0, 0x9000 xxxx xxxx xxxx
-        csrwr       $t0, LOONGARCH_CSR_DMWIN1
+	/* setup direct access window */
+    li.d        $t0, 0x8000000000000000   
+    csrwr       $t0, LOONGARCH_CSR_DMWIN0
+    li.d        $t0, 0x9000000000000011   # CA, PLV0, 0x9000 xxxx xxxx xxxx
+    csrwr       $t0, LOONGARCH_CSR_DMWIN1
 
-	ertn
+	jirl $zero, $ra, 0
 END(__start_mmu)
 
 ENTRY(_libkvmplat_newstack)
@@ -46,5 +45,5 @@ ENTRY(_libkvmplat_newstack)
 	move $a0, $a2
 
 	/* Jump to the next function */
-	b  spin
+	jirl $zero, $a1, 0
 END(_libkvmplat_newstack)

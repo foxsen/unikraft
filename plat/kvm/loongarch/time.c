@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Wei Chen <wei.chen@arm.com>
+ * Authors: Eduard Vintila <eduard.vintila47@gmail.com>
  *
- * Copyright (c) 2018, Arm Ltd., All rights reserved.
+ * Copyright (c) 2022, University of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,48 +29,66 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdint.h>
+#include <libfdt.h>
+#include <uk/plat/time.h>
 #include <uk/plat/lcpu.h>
-#include <loongarch/irq.h>
-#include <loongarch/cpu.h>
+#include <uk/bitops.h>
+#include <uk/plat/common/cpu.h>
+#include <uk/plat/common/irq.h>
+#include <loongarch/time.h>
+#include <kvm/config.h>
+#include <uk/assert.h>
+#include <rtc/ls7a.h>
 
-void ukplat_lcpu_enable_irq(void)
+int timer_irq_handler(void *arg __unused)
 {
-	local_irq_enable();
+	return 1;
 }
 
-void ukplat_lcpu_disable_irq(void)
+__nsec ukplat_monotonic_clock(void)
 {
-	local_irq_disable();
+	return timer_monotonic_clock();
 }
 
-void ukplat_lcpu_halt_irq(void)
+__nsec ukplat_wall_clock(void)
 {
-	ukplat_lcpu_enable_irq();
-	halt();
-	ukplat_lcpu_disable_irq();
+	return ukplat_monotonic_clock() + timer_epoch_offset();
 }
 
-unsigned long ukplat_lcpu_save_irqf(void)
+void ukplat_time_init(void)
 {
-	unsigned long flags;
+#if 0 //todo
+	int rc;
 
-	local_irq_save(flags);
+	rc = ls7a_init_rtc(_libkvmplat_cfg.dtb);
+	if (rc < 0)
+		uk_pr_warn(
+		    "RTC device not found, wall time will not be accurate\n");
 
-	return flags;
+	rc = init_timer(_libkvmplat_cfg.dtb);
+	if (rc < 0)
+		UK_CRASH("Could not initialize the loongarch timer\n");
+
+	rc = ukplat_irq_register(0, timer_irq_handler, NULL);
+	if (rc < 0)
+		UK_CRASH("Could not register the timer interrupt handler\n");
+#endif
 }
 
-void ukplat_lcpu_restore_irqf(unsigned long flags)
+void ukplat_time_fini(void) {}
+
+uint32_t ukplat_time_get_irq(void)
 {
-	local_irq_restore(flags);
+	return 0;
 }
 
-int ukplat_lcpu_irqs_disabled(void)
-{
-	return irqs_disabled();
-}
+unsigned long sched_have_pending_events;
 
-void ukplat_lcpu_irqs_handle_pending(void)
+void time_block_until(__nsec until)
 {
-	// TODO
+	while (ukplat_monotonic_clock() < until) {
+		timer_cpu_block_until(until);
+		if (__uk_test_and_clear_bit(0, &sched_have_pending_events))
+			break;
+	}
 }

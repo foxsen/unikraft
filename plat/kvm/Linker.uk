@@ -10,7 +10,7 @@ else ifeq (arm64,$(CONFIG_UK_ARCH))
 KVM_LDFLAGS-y += -Wl,-m,aarch64elf
 KVM_LINK_LIBGCC_FLAG := -lgcc
 else ifeq (loongarch64,$(CONFIG_UK_ARCH))
-KVM_LDFLAGS-y += -Wl,-m,loongarch64elf
+KVM_LDFLAGS-y += -Wl,-m,elf64loongarch
 KVM_LINK_LIBGCC_FLAG := -lgcc
 endif
 KVM_BINFO_FLAGS := -a $(CONFIG_UK_ARCH)

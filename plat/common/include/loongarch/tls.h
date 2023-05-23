@@ -30,8 +30,17 @@
 #ifndef __PLAT_LOONGARCH_TLS_H__
 #define __PLAT_LOONGARCH_TLS_H__
 
-#define get_tls_pointer() 0
+#define get_tls_pointer() \
+    ({                                                           \
+        register unsigned long __tp;                         \
+        __asm__ __volatile__("move %0, $tp"                     \
+                     : "=r"(__tp)                     \
+                     :                               \
+                     : "memory");                    \
+        __tp;                                                 \
+    })
 
-#define set_tls_pointer(ptr)  {}
+#define set_tls_pointer(ptr) \
+    ({ __asm__ __volatile__("move $tp, %0" : : "r"(ptr) : "memory"); })
 
 #endif /* __PLAT_LOONGARCH_TLS_H__ */

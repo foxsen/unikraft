@@ -2,21 +2,30 @@
 #include <uk/plat/common/common.lds.h>
 
 /* QEMU LA virt platform's ram base address */
-#define RAM_BASE_ADDR 0x9000000000200000
+#define RAM_BASE_ADDR 0x00000000
 
-/* Reserve first 1MB for DTB */
-#define DTB_RESERVED_SIZE 0x100000
+/* Reserve first 1MB for BIOS */
+#define BIOS_RESERVED_SIZE 0x200000
 
 OUTPUT_ARCH( "loongarch" )
 ENTRY( _libkvmplat_entry )
 
+PHDRS
+{
+    text PT_LOAD FLAGS(PHDRS_PF_RX);
+    rodata PT_LOAD FLAGS(PHDRS_PF_R);
+    data PT_LOAD;
+    tls PT_TLS;
+    tls_load PT_LOAD;
+    stack PT_GNU_STACK FLAGS(PHDRS_PF_RW);
+}
+
 SECTIONS {
 	. = RAM_BASE_ADDR;
-
-	/* Place DTB binary at the beginning of the RAM */
-	_dtb = .;
 	_start_ram_addr = .;
-	. = . + DTB_RESERVED_SIZE;
+
+	_dtb = . + 0x100000;
+	. = . + BIOS_RESERVED_SIZE;
 
 	/* Code */
 	_text = .;
@@ -24,10 +33,21 @@ SECTIONS {
 	{
 		*(.text)
 		*(.text.*)
-	}
+	} :text
 
 	. = ALIGN(__PAGE_SIZE);
 	_etext = .;
+
+   /* Read-only data */
+    . = ALIGN(__PAGE_SIZE);
+    _rodata = .;
+    .rodata :
+    {
+        *(.rodata)
+        *(.rodata.*)
+        *(.srodata)
+        *(.srodata.*)
+    } :rodata
 
 	EXCEPTION_SECTIONS
 
@@ -35,15 +55,7 @@ SECTIONS {
 
 	INITTAB_SECTION
 
-	/* Read-only data */
-	. = ALIGN(__PAGE_SIZE);
-	_rodata = .;
-	.rodata :
-	{
-		*(.rodata)
-		*(.rodata.*)
-	}
-
+    EVENTTAB_SECTION
 
 	_erodata = .;
 
@@ -68,35 +80,12 @@ SECTIONS {
 
 	TLS_SECTIONS
 
-	/* Read-write data that is initialized explicitly in code */
-	_data = .;
-	.data :
-	{
-		*(.data)
-		*(.data.*)
-	}
-	_edata = .;
-	. = ALIGN(__PAGE_SIZE);
+    DATA_SECTIONS
 
-	__bss_start = .;
-	/* Read-write data that is not initialized explicitly in code */
-	.bss :
-	{
-		*(.bss)
-		*(.bss.*)
-		*(COMMON)
-		. = ALIGN(__PAGE_SIZE);
-	/*
-	 * TODO
-	 * We can define the stack and page-table here, and free them once
-	 * the boot is done.
-	 */
-	}
+    _end = .;
 
-	_end = .;
+    .comment       0 : { *(.comment) }
+    DEBUG_SYMBOLS
 
-	.comment       0 : { *(.comment) }
-	DEBUG_SYMBOLS
-
-	/DISCARD/ : { *(.note.gnu.build-id) }
+    /DISCARD/ : { *(.note.gnu.build-id) }
 }

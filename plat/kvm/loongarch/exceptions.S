@@ -4,7 +4,7 @@
 #include <uk/config.h>
 
 .section .text
-.align 8
+.align 12
 GLOBAL(__trap_handler)
     /* Push registers to stack */
         addi.d $sp, $sp, -256
@@ -42,13 +42,13 @@ GLOBAL(__trap_handler)
         st.d $s7, $sp, 232
         st.d $s8, $sp, 240
 
-	// call the C trap handler
+	    // call the C trap handler
         bl _trap_handler
 
     /* Pop registers from stack */
         ld.d $ra, $sp, 0
-        // not this, in case we moved CPUs: ld.d $tp, $sp, 8
-        ld.d $sp, $sp, 16
+        ld.d $tp, $sp, 8
+        //ld.d $sp, $sp, 16
         ld.d $a0, $sp, 24
         ld.d $a1, $sp, 32
         ld.d $a2, $sp, 40
@@ -81,4 +81,10 @@ GLOBAL(__trap_handler)
         addi.d $sp, $sp, 256
 
         // return to whatever we were doing in the kernel.
+        ertn
+
+.align 12
+GLOBAL(__tlbr_handler)
+
+1: b  1b
         ertn

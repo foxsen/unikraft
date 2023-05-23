@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Authors: Wei Chen <wei.chen@arm.com>
+ * Authors: Eduard Vintila <eduard.vintila47@gmail.com>
  *
- * Copyright (c) 2018, Arm Ltd., All rights reserved.
+ * Copyright (c) 2022, University of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,48 +29,14 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdint.h>
-#include <uk/plat/lcpu.h>
-#include <loongarch/irq.h>
-#include <loongarch/cpu.h>
+#ifndef __LOONGARCH_TIME_H
+#define __LOONGARCH_TIME_H
+#include <uk/arch/types.h>
+#include <uk/arch/time.h>
 
-void ukplat_lcpu_enable_irq(void)
-{
-	local_irq_enable();
-}
+int init_timer(void *dtb);
+void timer_cpu_block_until(__u64 until);
+__nsec timer_monotonic_clock(void);
+__nsec timer_epoch_offset(void);
 
-void ukplat_lcpu_disable_irq(void)
-{
-	local_irq_disable();
-}
-
-void ukplat_lcpu_halt_irq(void)
-{
-	ukplat_lcpu_enable_irq();
-	halt();
-	ukplat_lcpu_disable_irq();
-}
-
-unsigned long ukplat_lcpu_save_irqf(void)
-{
-	unsigned long flags;
-
-	local_irq_save(flags);
-
-	return flags;
-}
-
-void ukplat_lcpu_restore_irqf(unsigned long flags)
-{
-	local_irq_restore(flags);
-}
-
-int ukplat_lcpu_irqs_disabled(void)
-{
-	return irqs_disabled();
-}
-
-void ukplat_lcpu_irqs_handle_pending(void)
-{
-	// TODO
-}
+#endif

@@ -39,6 +39,8 @@
 #include <x86/irq.h>
 #elif defined(__ARM_64__)
 #include <arm/irq.h>
+#elif defined(__LOONGARCH_64__)
+#include <loongarch/irq.h>
 #else
 #error "Add irq.h for current architecture."
 #endif

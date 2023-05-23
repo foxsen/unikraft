@@ -4,12 +4,14 @@
  *          Cyril Soldani <cyril.soldani@uliege.be>
  *          Simon Kuenzer <simon@unikraft.io>
  *          Robert Kuban <robert.kuban@opensynergy.com>
+ *	    Eduard Vintilă <eduard.vintila47@gmail.com>
  *
  * Copyright (c) 2019, NEC Europe Ltd., NEC Corporation. All rights reserved.
  * Copyright (c) 2021, University of Liège. All rights reserved.
  * Copyright (c) 2022, NEC Laboratories Europe GmbH, NEC Corporation.
  *                     All rights reserved.
  * Copyright (c) 2022, OpenSynergy GmbH All rights reserved.
+ * Copyright (c) 2022, University of Bucharest. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,13 +51,6 @@
 #include <uk/arch/types.h>
 #include <uk/arch/tls.h>
 
-#if CONFIG_LIBUKDEBUG
-#include <uk/assert.h>
-#include <uk/print.h>
-#else /* !CONFIG_LIBUKDEBUG */
-#define UK_ASSERT(..) do {} while (0)
-#define uk_pr_debug(..) do {} while (0)
-#endif /* !CONFIG_LIBUKDEBUG */
 
 #ifndef __UKARCH_TLS_HAVE_TCB__
 #ifndef TCB_SIZE
@@ -66,27 +61,35 @@
 extern char _tls_start[], _etdata[], _tls_end[];
 
 /*
+ * This file implements a static exec TLS layout
+ * (variant 1 with one static TLS block).
+ *
+ *
+ * tls_area -> +-------------------------+ |  /
+ *	       |    / PADDING /            |  > tls_padding_size()
+ *    tcbp --> +-------------------------+ |  \
+ *             |                         | |  |
+ *             | Custom TCB format       | |   > Thread Control Block (TCB)
+ *             | (might be used          | |  |  (length: TCB_SIZE)
+ *             |  by a libC)             | |  |
+ *             |                         | |  |
+ *    tlsp --> +-------------------------+ |  \
+ *             |                         | |  |
+ *             | .tdata                  | |  |
+ *             |                         | |   > Static TLS block
+ *             +-------------------------+ |  |
+ *             |                         | |  |
+ *             | .tbss                   | |  |
+ *             |                         | |  |
+ *             +-------------------------+ /  /
+ *
+ */
+
+/*
  * The TLS area alignment is usually read from the ELF header (p_align of the
  * TLS section).
- * WARNING: It NEEDS to match, as aarch64 uses the alignment at link time to
- * calculate the offset from the tlsp.
  */
 #define TLS_AREA_ALIGN 16
-
-static __sz tls_data_offset(void)
-{
-	return TLS_AREA_ALIGN;
-}
-
-static __sz tls_padding_2_size(void)
-{
-	/*
-	 * The tlsp points to the mandatory 16 bytes block, padding 2 fills the
-	 * rest of it. The size of this padding is therefore determined by the
-	 * ABI.
-	 */
-	return tls_data_offset();
-}
 
 static __sz tls_tdata_size(void)
 {
@@ -97,15 +100,8 @@ static __sz tls_tbss_size(void)
 	return (__uptr) _tls_end - (__uptr) _etdata;
 }
 
-static __sz tls_padding_1_size(void)
+static __sz tls_padding_size(void)
 {
-	/* We do not control:
-	 * - TCB_SIZE
-	 * - TLS_AREA_ALIGN
-	 * - and therefore size of padding 2
-	 * Adding tls_data_offset does not break alignment, so we can just align
-	 * tlsp. This padding rounds up the size of the TCB before tlsp.
-	 */
 	const __sz tcb_before_tlsp = TCB_SIZE;
 
 	return ALIGN_UP(tcb_before_tlsp, TLS_AREA_ALIGN) - tcb_before_tlsp;
@@ -118,9 +114,8 @@ __sz ukarch_tls_area_align(void)
 
 __sz ukarch_tls_area_size(void)
 {
-	return tls_padding_1_size()
+	return tls_padding_size()
 		+ ukarch_tls_tcb_size()
-		+ tls_padding_2_size()
 		+ tls_tdata_size()
 		+ tls_tbss_size();
 }
@@ -128,16 +123,16 @@ __sz ukarch_tls_area_size(void)
 __uptr ukarch_tls_tlsp(void *tls_area)
 {
 	return ((__uptr) tls_area)
-		+ tls_padding_1_size()
+		+ tls_padding_size()
 		+ ukarch_tls_tcb_size();
 }
 
-/* arch pointer ($tp) to area */
 void *ukarch_tls_area_get(__uptr tlsp)
 {
+	/* inverse of ukarch_tls_tlsp */
 	return (void *) (tlsp
 		- ukarch_tls_tcb_size()
-		- tls_padding_1_size());
+		- tls_padding_size());
 }
 
 /* arch pointer to tcb pointer */
@@ -154,55 +149,51 @@ __sz ukarch_tls_tcb_size(void)
 
 void ukarch_tls_area_init(void *tls_area)
 {
+	const __sz padding = tls_padding_size();
+	const __sz tcb_len = ukarch_tls_tcb_size();
+	const __sz tdata_len = tls_tdata_size();
+	const __sz tbss_len  = tls_tbss_size();
+	__u8 *writepos = tls_area;
+
 	UK_ASSERT(IS_ALIGNED((__uptr) tls_area, ukarch_tls_area_align()));
 	uk_pr_debug("tls_area_init: target: %p (%"__PRIsz" bytes)\n",
 		    tls_area, ukarch_tls_area_size());
 
-	__u8 *writepos = tls_area;
-
-	/* padding 1 */
+	/* padding */
 	uk_pr_debug("tls_area_init: pad: %"__PRIsz" bytes\n",
-		    tls_padding_1_size());
+		    padding);
 #if CONFIG_LIBCONTEXT_CLEAR_TBSS
-	memset(writepos, 0x0, tls_padding_1_size());
+	memset(writepos, 0x0, padding);
 #endif /* CONFIG_LIBCONTEXT_CLEAR_TBSS */
-	writepos += tls_padding_1_size();
+	writepos += tls_padding_size();
 
 	/* TCB */
 	uk_pr_debug("tls_area_init: tcb: %"__PRIsz" bytes\n",
-		    ukarch_tls_tcb_size());
+		    tcb_len);
 	UK_ASSERT(ukarch_tls_tcb_get(ukarch_tls_tlsp(tls_area)) == writepos);
 #if CONFIG_UKARCH_TLS_HAVE_TCB
 	ukarch_tls_tcb_init(writepos);
 #else /* !CONFIG_UKARCH_TLS_HAVE_TCB */
-	memset(writepos, 0x0, ukarch_tls_tcb_size());
+	memset(writepos, 0x0, tcb_len);
 #endif /*!CONFIG_UKARCH_TLS_HAVE_TCB */
-	writepos += ukarch_tls_tcb_size();
-	UK_ASSERT(ukarch_tls_tlsp(tls_area) ==
-		  ((__uptr) writepos));
+	writepos += tcb_len;
 
-	/* padding 2 */
-	uk_pr_debug("tls_area_init: pad: %"__PRIsz" bytes\n",
-		    tls_padding_2_size());
-#if CONFIG_LIBCONTEXT_CLEAR_TBSS
-	memset(writepos, 0x0, tls_padding_2_size());
-#endif /* CONFIG_LIBCONTEXT_CLEAR_TBSS */
-	writepos += tls_padding_2_size();
+
 
 	/* .tdata */
 	uk_pr_debug("tls_area_init: copy (.tdata): %"__PRIsz" bytes\n",
-		    tls_tdata_size());
+		    tdata_len);
 	UK_ASSERT(IS_ALIGNED((__uptr) writepos, ukarch_tls_area_align()));
-	memcpy(writepos, _tls_start, tls_tdata_size());
-	writepos += tls_tdata_size();
+	memcpy(writepos, _tls_start, tdata_len);
+	writepos += tdata_len;
 
 	/* .tbss */
 	uk_pr_debug("tls_area_init: uninitialized (.tbss): %"__PRIsz" bytes\n",
-		    tls_tdata_size());
+		    tbss_len);
 #if CONFIG_LIBCONTEXT_CLEAR_TBSS
-	memset(writepos, 0x0, tls_tbss_size());
+	memset(writepos, 0x0, tbss_len);
 #endif /* CONFIG_LIBCONTEXT_CLEAR_TBSS */
-	writepos += tls_tbss_size();
+	writepos += tbss_len;
 
 	UK_ASSERT(ukarch_tls_area_size() ==
 		  (__sz) (writepos - (__u8 *) tls_area));

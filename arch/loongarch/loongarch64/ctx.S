@@ -10,7 +10,7 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- * 1. Redistributions of source code must jirl $ra, $zero, 0ain the above copyright
+ * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
@@ -48,73 +48,75 @@
  */
 
 ENTRY(_ctx_loongarch_clearregs)
-	/* wipe argument and jirl $ra, $zero, 0urn registers */
-	add.d $a0, $zero,  $zero
-	add.d $a1, $zero,  $zero
-	add.d $a2, $zero,  $zero
-	add.d $a3, $zero,  $zero
-	add.d $a4, $zero,  $zero
-	add.d $a5, $zero,  $zero
-	add.d $a6, $zero,  $zero
-	add.d $a7, $zero,  $zero
+	/* wipe argument and return registers */
+	move $a0, $zero
+	move $a1, $zero
+	move $a2, $zero
+	move $a3, $zero
+	move $a4, $zero
+	move $a5, $zero
+	move $a6, $zero
+	move $a7, $zero
 
-	add.d $tp, $zero,  $zero
+	move $tp, $zero
 
 	/* wipe callee-saved registers */
-	add.d $s0, $zero,  $zero
-	add.d $s1, $zero,  $zero
-	add.d $s2, $zero,  $zero
-	add.d $s3, $zero,  $zero
-	add.d $s4, $zero,  $zero
-	add.d $s5, $zero,  $zero
-	add.d $s6, $zero,  $zero
-	add.d $s7, $zero,  $zero
-	add.d $s8, $zero,  $zero
+	move $s0, $zero
+	move $s1, $zero
+	move $s2, $zero
+	move $s3, $zero
+	move $s4, $zero
+	move $s5, $zero
+	move $s6, $zero
+	move $s7, $zero
+	move $s8, $zero
 #if __OMIT_FRAMEPOINTER__
-	add.d $fp, $zero,  $zero /* don't wipe if $fp is used as frame pointer */
+	move $fp, $zero /* don't wipe if $fp is used as frame pointer */
 #endif /* __OMIT_FRAMEPOINTER__ */
 
 	/* jump to entrance function left on stack */
-	ld.d $ra, $sp, 16
-	jirl $ra, $zero, 0
+	ld.d $ra, $sp, 0
+    addi.d $sp, $sp, 16
+	jirl $zero, $ra, 0
 
 ENTRY(_ctx_loongarch_call0)
 #if !__OMIT_FRAMEPOINTER__
-	add.d $fp, $zero,  $zero /* reset frame pointer */
+	move $fp, $zero /* reset frame pointer */
 #endif /* !__OMIT_FRAMEPOINTER__ */
 	/* jump to entrance function left on stack */
-	ld.d $ra, $sp, 16
-	jirl $ra, $zero, 0
+	ld.d $ra, $sp, 0
+    addi.d $sp, $sp, 16
+	jirl $zero, $ra, 0
 
 ENTRY(_ctx_loongarch_call1)
 #if !__OMIT_FRAMEPOINTER__
-	add.d $fp, $zero,  $zero /* reset frame pointer */
+	move $fp, $zero /* reset frame pointer */
 #endif /* !__OMIT_FRAMEPOINTER__ */
-	ld.d $a0, $sp, 16
+	ld.d $a0, $sp, 0
 	/* jump to entrance function left on stack */
 	ld.d $ra, $sp, 16
-	jirl $ra, $zero, 0
+    addi.d $sp, $sp, 32
+	jirl $zero, $ra, 0
 
 ENTRY(_ctx_loongarch_call2)
 #if !__OMIT_FRAMEPOINTER__
-	add.d $fp, $zero,  $zero /* reset frame pointer */
+	move $fp, $zero /* reset frame pointer */
 #endif /* !__OMIT_FRAMEPOINTER__ */
+	ld.d $a0, $sp, 0
 	ld.d $a1, $sp, 16
-	ld.d $a0, $sp, 16
 	/* jump to entrance function left on stack */
-	ld.d $ra, $sp, 16
-	jirl $ra, $zero, 0
+	ld.d $ra, $sp, 32
+    addi.d $sp, $sp, 48
+	jirl $zero, $ra, 0
 
 /*
  * Switch context on the current LCPU.
  */
 ENTRY(ukarch_ctx_switch)
 
-	st.d $tp, $sp, -16
-
 	/* Save callee-saved registers to prevctx's stack */
 	addi.d $sp, $sp, -128
-	st.d $s0, $sp, 0
+	//st.d $s0, $sp, 0
 	st.d $s0, $sp, 8
 	st.d $s1, $sp, 16
 	st.d $s2, $sp, 24
@@ -134,20 +136,19 @@ ENTRY(ukarch_ctx_switch)
 	la $ra, restore_point
 
 	/* Save sp and restore point to previous context */
-	add.d $a2, $zero,  $sp
-	st.d $ra, $a0, 0
-	st.d $a2, $a0, 8
+	move $a2, $sp
+	st.d $a2, $a0, 0
+	st.d $sp, $a0, 8
 
 	/* Restore sp and restore point from next context */
     ld.d $ra, $a1, 0
-    ld.d $a2, $a1, 8
-	add.d $sp, $zero,  $a2
+    ld.d $sp, $a1, 8
 
-	jirl $ra, $zero, 0
+	jirl $zero, $ra, 0
 
 restore_point:
 	/* Restore the callee-saved registers */
-	ld.d $s0, $sp, 0
+	//ld.d $s0, $sp, 0
 	ld.d $s0, $sp, 8
 	ld.d $s1, $sp, 16
 	ld.d $s2, $sp, 24
@@ -162,8 +163,5 @@ restore_point:
 
 	addi.d $sp, $sp, 128
 
-	/* restore tp*/
-	ld.d $tp, $sp, 16
-
-	jirl $ra, $zero, 0
+	jirl $zero, $ra, 0
 

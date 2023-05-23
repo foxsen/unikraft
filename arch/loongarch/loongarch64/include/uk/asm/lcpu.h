@@ -71,9 +71,9 @@ struct __regs {
 #define _csr_write(csr, val)                                                   \
 	({                                                                     \
 		unsigned long __v = (unsigned long)(val);                      \
-		__asm__ __volatile__("csrwr %0" __ASM_STR(csr)                 \
+		__asm__ __volatile__("csrwr %0, " __ASM_STR(csr)                 \
 				     :                                         \
-				     : "rK"(__v)                               \
+				     : "r"(__v)                               \
 				     : "memory");                              \
 	})
 
@@ -83,9 +83,9 @@ struct __regs {
 		unsigned long __r;                                              \
 		__asm__ __volatile__("csrrd %0, " __ASM_STR(csr) "\n\t"         \
 				     "or %0, %0, %1\n\t"                        \
-				     "csrwr %0" __ASM_STR(csr)                  \
+				     "csrwr %0, " __ASM_STR(csr)                  \
 				     : "=&r"(__r)                               \
-				     : "rK"(__v)                                \
+				     : "r"(__v)                                \
 				     : "memory");                               \
 		__r;                                                            \
 	})
@@ -98,25 +98,18 @@ struct __regs {
                 unsigned long __r;                                                \
                 __asm__ __volatile__("csrrd %0, " __ASM_STR(csr) "\n\t"           \
                                      "and %0, %0, %1\n\t"                         \
-                                     "csrwr %0" __ASM_STR(csr)                    \
+                                     "csrwr %0, " __ASM_STR(csr)                    \
                                      : "=&r"(__r)                                 \
-                                     : "rK"(-1UL ^ __v)                           \
+                                     : "r"(-1UL ^ __v)                           \
                                      : "memory");                                 \
     __r;                                                                          \
   })
-
-
-/* IOCSR */
-/* 
- * iocsrrd.d和iocsrwr.d指令只存在于LA64架构，
- * 因此使用到可能需要更改unikraft_loongarch/arch/loongarch/loongarch64中的-march选项
- */
 
 static inline __u8 ioreg_read8(const volatile __u8 *address)
 {
 	__u8 value;
 
-	asm volatile("iocsrrd.b %0, 0(%1)" : "=r"(value) : "r"(address));
+	asm volatile("ld.b %0, %1, 0" : "=r"(value) : "r"(address));
 	return value;
 }
 
@@ -124,7 +117,7 @@ static inline __u16 ioreg_read16(const volatile __u16 *address)
 {
 	__u16 value;
 
-	asm volatile("iocsrrd.h %0, 0(%1)" : "=r"(value) : "r"(address));
+	asm volatile("ld.h %0, %1, 0" : "=r"(value) : "r"(address));
 	return value;
 }
 
@@ -132,7 +125,7 @@ static inline __u32 ioreg_read32(const volatile __u32 *address)
 {
 	__u32 value;
 
-	asm volatile("iocsrrd.w %0, 0(%1)" : "=r"(value) : "r"(address));
+	asm volatile("ld.w %0, %1, 0" : "=r"(value) : "r"(address));
 	return value;
 }
 
@@ -140,28 +133,28 @@ static inline __u64 ioreg_read64(const volatile __u64 *address)
 {
 	__u64 value;
 
-	asm volatile("iocsrrd.d %0, 0(%1)" : "=r"(value) : "r"(address));
+	asm volatile("ld.d %0, %1, 0" : "=r"(value) : "r"(address));
 	return value;
 }
 
 static inline void ioreg_write8(const volatile __u8 *address, __u8 value)
 {
-	asm volatile("iocsrwr.b %0, 0(%1)" : : "rZ"(value), "r"(address));
+	asm volatile("st.b %0, %1, 0" : : "r"(value), "r"(address));
 }
 
 static inline void ioreg_write16(const volatile __u16 *address, __u16 value)
 {
-	asm volatile("iocsrwr.h %0, 0(%1)" : : "rZ"(value), "r"(address));
+	asm volatile("st.h %0, %1, 0" : : "r"(value), "r"(address));
 }
 
 static inline void ioreg_write32(const volatile __u32 *address, __u32 value)
 {
-	asm volatile("iocsrwr.w %0, 0(%1)" : : "rZ"(value), "r"(address));
+	asm volatile("st.w %0, %1, 0" : : "r"(value), "r"(address));
 }
 
 static inline void ioreg_write64(const volatile __u64 *address, __u64 value)
 {
-	asm volatile("iocsrwr.d %0, 0(%1)" : : "rZ"(value), "r"(address));
+	asm volatile("st.d %0, %1, 0" : : "r"(value), "r"(address));
 }
 
 static inline unsigned long ukarch_read_sp(void)

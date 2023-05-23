@@ -16,6 +16,7 @@ $(eval $(call addplatlib_s,kvm,libkvmvirtio9p,$(CONFIG_VIRTIO_9P)))
 $(eval $(call addplatlib_s,kvm,libkvmofw,$(CONFIG_LIBOFW)))
 $(eval $(call addplatlib_s,kvm,libkvmgic,$(CONFIG_LIBGIC)))
 $(eval $(call addplatlib_s,kvm,libkvmpl031,$(CONFIG_RTC_PL031)))
+$(eval $(call addplatlib_s,kvm,libkvmls7a,$(CONFIG_ARCH_LOONGARCH_64)))
 
 ##
 ## Platform library definitions
@@ -131,11 +132,32 @@ LIBKVMPLAT_SRCS-$(CONFIG_ARCH_ARM_64) += $(LIBKVMPLAT_BASE)/arm/memory.c
 ## Architecture library definitions for loongarch64
 ##
 LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/entry64.S|isr
-LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/exceptions.S|isr
-LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/pagetable64.S|isr
 LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/setup.c
-LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/setup-paging.c
-LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/dtb.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/traps.c|isr
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/exceptions.S|isr
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/lcpu.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/time.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/intctrl.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(LIBKVMPLAT_BASE)/loongarch/memory.c
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_COMMON_BASE)/bootinfo.c|common
+
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_COMMON_BASE)/loongarch/cpu_native.c|common
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_COMMON_BASE)/loongarch/timer.c|common
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64)   += $(UK_PLAT_COMMON_BASE)/tls.c|common
+
+ifeq ($(CONFIG_FPSIMD),y)
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_COMMON_BASE)/loongarch/fp_loongarch64.c|isr
+endif
+
+ifeq ($(CONFIG_PAGING),y)
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_COMMON_BASE)/paging.c|common
+# Needed for loongarch/cpu_* headers included in the loongarch64 implementation of asm/paging.h
+LIBUKFALLOCBUDDY_CINCLUDES-y += -I$(UK_PLAT_COMMON_BASE)/include
+endif
+
+ifeq ($(findstring y,$(CONFIG_KVM_KERNEL_SERIAL_CONSOLE) $(CONFIG_KVM_DEBUG_SERIAL_CONSOLE)),y)
+LIBKVMPLAT_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += $(UK_PLAT_DRIVERS_BASE)/uart/ns16550.c
+endif
 
 LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/shutdown.c
 LIBKVMPLAT_SRCS-y              += $(LIBKVMPLAT_BASE)/irq.c
@@ -159,6 +181,10 @@ LIBKVMPCI_SRCS-$(CONFIG_ARCH_ARM_64) += \
 				$(UK_PLAT_COMMON_BASE)/arm/pci_bus_arm64.c|arm
 LIBKVMPCI_SRCS-$(CONFIG_ARCH_ARM_64) += \
 				$(UK_PLAT_COMMON_BASE)/pci_ecam.c|arm
+LIBKVMPCI_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += \
+				$(UK_PLAT_COMMON_BASE)/loongarch/pci_bus_loongarch64.c|loongarch
+LIBKVMPCI_SRCS-$(CONFIG_ARCH_LOONGARCH_64) += \
+                $(UK_PLAT_COMMON_BASE)/pci_ecam.c|loongarch
 
 ##
 ## Platform bus library definitions
@@ -186,6 +212,9 @@ LIBKVMVIRTIO_SRCS-$(CONFIG_VIRTIO_PCI) +=\
 			$(UK_PLAT_DRIVERS_BASE)/virtio/virtio_pci.c
 LIBKVMVIRTIO_SRCS-$(CONFIG_ARCH_ARM_64)	+=\
 			$(UK_PLAT_DRIVERS_BASE)/virtio/virtio_mmio.c
+LIBKVMVIRTIO_SRCS-$(CONFIG_ARCH_LOONGARCH_64) +=\
+            $(UK_PLAT_DRIVERS_BASE)/virtio/virtio_mmio.c
+
 ##
 ## Virtio Net library definition
 ##
@@ -256,3 +285,15 @@ LIBKVMPL031_CINCLUDES-y		+= -I$(UK_PLAT_DRIVERS_BASE)/include
 
 LIBKVMPL031_SRCS-y		+= $(UK_PLAT_DRIVERS_BASE)/rtc/pl031.c
 LIBKVMPL031_SRCS-y		+= $(UK_PLAT_DRIVERS_BASE)/rtc/rtc.c
+
+##
+## RTC-LS7A library definitions
+##
+LIBKVMLS7A_CINCLUDES-y		+= -I$(LIBKVMPLAT_BASE)/include
+LIBKVMLS7A_CINCLUDES-y		+= -I$(UK_PLAT_COMMON_BASE)/include
+LIBKVMLS7A_CINCLUDES-y		+= -I$(UK_PLAT_DRIVERS_BASE)/include
+
+LIBKVMLS7A_SRCS-y		+= $(UK_PLAT_DRIVERS_BASE)/rtc/ls7a.c
+LIBKVMLS7A_SRCS-y		+= $(UK_PLAT_DRIVERS_BASE)/rtc/rtc.c
+
+
